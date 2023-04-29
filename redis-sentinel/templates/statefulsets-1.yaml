@@ -1,0 +1,191 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-1
+spec:
+  serviceName: redis-1
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-1
+  template:
+    metadata:
+      labels:
+        app: redis-1
+        networkPolicy: redis
+    spec:
+      {{ if ne .Values.containerPlatform "anthos"}}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: env
+                    operator: In
+                    values:
+                      - dev
+                      - sit
+                      - uat
+                      - prod
+                      - dr
+      {{ end }}
+      initContainers:
+      - name: config
+        image: {{ .Values.redisBaseImage }}
+        command: [ "bash", "-c" ]
+        {{ if eq .Values.containerPlatform "anthos"}}
+        securityContext:
+          runAsUser: 0
+        {{ end }}
+        args:
+          - |
+            echo "{{ .Values.ocpProjectName }}"
+
+            MASTER_FQDN=$(redis-cli -h redis-0-0.redis-0.{{ .Values.ocpProjectName }}.svc.cluster.local -p 26379 sentinel get-master-addr-by-name mymaster | head -n 1);
+
+            if [ -z "$MASTER_FQDN" ];
+            then
+                MASTER_FQDN=$(redis-cli -h redis-1-0.redis-1.{{ .Values.ocpProjectName }}.svc.cluster.local -p 26379 sentinel get-master-addr-by-name mymaster | head -n 1);
+            fi
+
+            if [ -z "$MASTER_FQDN" ];
+            then
+                MASTER_FQDN=$(redis-cli -h redis-2-0.redis-2.{{ .Values.ocpProjectName }}.svc.cluster.local -p 26379 sentinel get-master-addr-by-name mymaster | head -n 1);
+            fi
+
+            if [ -z "$MASTER_FQDN" ]; then
+                MASTER_FQDN=redis-0-0.redis-0.{{ .Values.ocpProjectName }}.svc.cluster.local;
+            else
+                echo "failovering...";
+            fi
+
+            POD_FQDN=$(cat /etc/hosts | tail -1 | awk '{print $2}');
+            echo "replica-announce-ip  $POD_FQDN" >> /etc/redis/redis.conf;
+            echo "replica-announce-port 6379"     >> /etc/redis/redis.conf;
+            echo "#MASTER_FQDN $MASTER_FQDN"      >> /etc/redis/redis.conf;
+            echo "appendonly no"                  >> /etc/redis/redis.conf;
+            echo "save \"\""                      >> /etc/redis/redis.conf;
+            echo "protected-mode no"              >> /etc/redis/redis.conf;
+            echo "bind 0.0.0.0"                   >> /etc/redis/redis.conf;
+            echo "loglevel debug"                 >> /etc/redis/redis.conf;
+            date_now=$(date "+%F-%H-%M-%S");
+            echo "logfile /applog/redis-1-${date_now}.log"    >> /etc/redis/redis.conf;
+            if [ "$POD_FQDN" = "$MASTER_FQDN" ]; then
+                echo "this is master, not updating config...";
+            else
+                echo "updating replica redis.conf...";
+                echo "slaveof $MASTER_FQDN 6379" >> /etc/redis/redis.conf;
+            fi
+            cat /etc/redis/redis.conf;
+
+            echo "port 26379
+            daemonize yes
+            protected-mode no
+            bind 0.0.0.0
+            sentinel resolve-hostnames yes
+            sentinel announce-ip $POD_FQDN
+            sentinel announce-port 26379
+            sentinel monitor mymaster $MASTER_FQDN 6379 2
+            sentinel down-after-milliseconds mymaster 15000
+            sentinel failover-timeout mymaster 30000
+            sentinel parallel-syncs mymaster 1
+            " > /etc/redis/sentinel.conf
+
+            cat /etc/redis/sentinel.conf;  ls -al /etc/redis/sentinel.conf;
+            ls -al /etc/redis/redis.conf; whoami;
+            sleep 30
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis/
+      containers:
+      - name: redis
+        image: {{ .Values.redisBaseImage }}
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sleep", "30000"]
+          postStart:
+            exec:
+              command: ["redis-server", "/etc/redis/sentinel.conf", "--sentinel"]
+        command: ["redis-server"]
+        {{ if eq .Values.containerPlatform "anthos"}}
+        securityContext:
+          runAsUser: 0
+        {{ end }}
+        args: ["/etc/redis/redis.conf"]
+        ports:
+        - containerPort: 6379
+          name: redis
+        - containerPort: 26379
+          name: sentinel
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis/
+        - name: applog
+          mountPath: /applog
+        resources:
+          requests:
+            cpu: '{{ .Values.resourceRequestCPU }}'
+            memory: '{{ .Values.resourceRequestMemory }}Mi'
+          limits:
+            cpu: '{{ .Values.resourceLimitCPU }}'
+            memory: '{{ .Values.resourceLimitMemory }}Mi'
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - redis-cli ping
+          initialDelaySeconds: 15
+          failureThreshold: 3
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - redis-cli ping
+          failureThreshold: 3
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 30
+      - name: redis-exporter
+        image: {{ .Values.redisExporterImage }}
+        ports:
+          - containerPort: 9121
+            protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        imagePullPolicy: IfNotPresent
+      imagePullSecrets:
+        - name: tools-rba-tools-read-pull-secret
+        - name: cicduser-harbor-secret
+      volumes:
+      - name: redis-config
+        emptyDir: {}
+      - name: applog
+        persistentVolumeClaim:
+          {{ if eq .Values.containerPlatform "anthos" }}
+          claimName: {{ .Values.ocpProjectName }}-redis-v0-logging-1
+          {{ else }}
+          claimName: {{ .Values.ocpProjectName }}-redis-v0-logging
+          {{ end }}
+{{ if eq .Values.containerPlatform "anthos" }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.ocpProjectName }}-redis-v0-logging-1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.logVolumnCapacityGB }}Gi
+  storageClassName: standard-rwo
+{{ end }}

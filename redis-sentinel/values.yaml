@@ -1,0 +1,10 @@
+redisSerialNumber: 1
+ocpProjectName:
+containerPlatform:
+logVolumnCapacityGB: 1
+redisBaseImage:
+redisExporterImage:
+resourceLimitCPU: 1
+resourceLimitMemory: 2048
+resourceRequestCPU: 0.2
+resourceRequestMemory: 512

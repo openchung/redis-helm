@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-1
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis-1
+    - port: 26379
+      targetPort: 26379
+      name: sentinel-1
+  selector:
+    app: redis-1
+  {{ if eq .Values.containerPlatform "anthos" }}
+  type: LoadBalancer
+  loadBalancerIP: 10.230.249.133
+  {{ end }}

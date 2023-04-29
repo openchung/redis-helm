@@ -1,0 +1,20 @@
+{{ if ne .Values.containerPlatform "anthos" }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.ocpProjectName }}-redis-v0-logging
+spec:
+  accessModes:
+  - ReadWriteMany
+  capacity:
+    storage: {{ .Values.logVolumnCapacityGB }}Gi
+  claimRef:
+    apiVersion: v1
+    name: {{ .Values.ocpProjectName }}-redis-v0-logging
+    kind: PersistentVolumeClaim
+    namespace: {{ .Values.ocpProjectName }}
+  hostPath:
+    path: /var/applog/{{ .Values.ocpProjectName }}
+    type: ''
+  persistentVolumeReclaimPolicy: Recycle
+{{ end }}
