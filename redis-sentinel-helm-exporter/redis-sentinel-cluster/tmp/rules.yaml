@@ -1,0 +1,56 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: redis-exporter-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: redis-test
+    rules:
+    - alert: TooManyRedisClient0
+      annotations:
+        description: >-
+          it means an excessive count of client connections to Redis.
+        runbook_url: >-
+          https://www.google.com
+        summary: too many redis client
+      expr: >
+        sum(redis_connected_clients{instance=~"redis-0"}) > -1
+      for: 1m
+      labels:
+        severity: none
+        app: redis
+        namespace: monitoring
+
+    - alert: TooManyRedisClient1
+      annotations:
+        description: >-
+          it means an excessive count of client connections to Redis.
+        runbook_url: >-
+          https://www.google.com
+        summary: too many redis client
+      expr: >
+        sum(redis_connected_clients{instance=~"redis-1"}) > -1
+      for: 1m
+      labels:
+        severity: none
+        app: redis
+        namespace: monitoring
+
+    - alert: TooManyRedisClient2
+      annotations:
+        description: >-
+          it means an excessive count of client connections to Redis.
+        runbook_url: >-
+          https://www.google.com
+        summary: too many redis client
+      expr: >
+        sum(redis_connected_clients{instance=~"redis-2"}) > -1
+      for: 1m
+      labels:
+        severity: none
+        app: redis
+        namespace: monitoring

@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: redis-config
+  namespace: monitoring
+  labels:
+    alertmanagerConfig: serverless
+spec:
+  route:
+    groupBy: ['redis']
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 12h
+    receiver: send-to-email
+    matchers:
+    - name: app
+      value: redis
+  receivers:
+  - name: send-to-email
+    emailConfigs:
+      - to: {{ .Values.mailTo }}
+        from: {{ .Values.mailFrom }}
+        smarthost: {{ .Values.smarthost }}
+        authUsername: {{ .Values.authUsername }}
+        authPassword:
+          name: mail-secret
+          key: password
+        requireTLS: false
+
+---
+apiVersion: v1
+kind: Secret
+metadata: 
+  name: mail-secret
+  namespace: monitoring
+type: Opaque
+stringData: 
+  password: {{ .Values.smtpSecret }}

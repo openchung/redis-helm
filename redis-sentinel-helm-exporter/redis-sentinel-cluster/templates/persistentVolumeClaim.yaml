@@ -1,0 +1,13 @@
+{{ if hasPrefix .Values.containerPlatform "ocp" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.ocpProjectName }}-redis-v0-logging
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.logVolumnCapacityGB }}Gi
+  volumeName: {{ .Values.ocpProjectName }}-redis-v0-logging
+{{ end }}

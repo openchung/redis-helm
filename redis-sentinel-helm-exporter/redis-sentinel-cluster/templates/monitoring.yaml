@@ -1,0 +1,69 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: redis-exporter-0
+    release: {{ .Values.releaseName }}
+  name: redis-exporter-0
+spec:
+  endpoints:
+    - interval: 1m
+      port: metrics-0
+      path: /metrics
+      metricRelabelings:
+        - targetLabel: instance
+          replacement: redis-0
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.ocpProjectName }}
+  selector:
+    matchLabels:
+      app: redis-0
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: redis-exporter-1
+    release: {{ .Values.releaseName }}
+  name: redis-exporter-1
+spec:
+  endpoints:
+    - interval: 1m
+      port: metrics-1
+      path: /metrics
+      metricRelabelings:
+        - targetLabel: instance
+          replacement: redis-1
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.ocpProjectName }}
+  selector:
+    matchLabels:
+      app: redis-1
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: redis-exporter-2
+    release: {{ .Values.releaseName }}
+  name: redis-exporter-2
+spec:
+  endpoints:
+    - interval: 1m
+      port: metrics-2
+      path: /metrics
+      metricRelabelings:
+        - targetLabel: instance
+          replacement: redis-2
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.ocpProjectName }}
+  selector:
+    matchLabels:
+      app: redis-2

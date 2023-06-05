@@ -1,0 +1,19 @@
+redisSerialNumber: 1
+ocpProjectName: 
+containerPlatform:
+logVolumnCapacityGB: 1
+redisBaseImage: 
+redisExporterImage:
+resourceLimitCPU: 1
+resourceLimitMemory: 2048
+resourceRequestCPU: 0.2
+resourceRequestMemory: 512
+mailTo: esun-to-mail@example.com
+mailFrom: esun-from-mail@example.com
+smarthost: smtp-host:465
+authUsername: smtp-username
+releaseName: prometheus-stack-sit
+needLoadbalancer: 
+loadbalancerIP0: 10.230.249.132
+loadbalancerIP1: 10.230.249.133
+loadbalancerIP2: 10.230.249.134
