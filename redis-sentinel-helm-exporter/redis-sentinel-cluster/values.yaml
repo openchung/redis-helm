@@ -17,3 +17,4 @@ needLoadbalancer:
 loadbalancerIP0: 10.230.249.132
 loadbalancerIP1: 10.230.249.133
 loadbalancerIP2: 10.230.249.134
+storageClassName: up0276-scp-nfs

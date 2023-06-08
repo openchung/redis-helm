@@ -1,5 +1,6 @@
 def envName            = "${ENV_NAME}"
 def appProjectName     = "${NAMESPACE_NAME}"
+def storageClassName   = appProjectName+"-nfs"
 def redisBaseImage     = "${REDIS_BASE_IMAGE}"
 def redisExporterImage = "${REDIS_EXPORTER_IMAGE}"
 def containerPlatform  = "${CONTAINER_PLATFORM}"
@@ -72,6 +73,7 @@ node("maven") {
 							--set loadbalancerIP0="${loadbalancerIP0}" \
 							--set loadbalancerIP1="${loadbalancerIP1}" \
 							--set loadbalancerIP2="${loadbalancerIP2}" \
+							--set storageClassName="${storageClassName}" \
 							./redis-sentinel-helm-exporter/redis-sentinel-cluster \
 							--kubeconfig="/home/jenkins/.m2/kubeconfig/${containerPlatform}/${envName}" -n "${appProjectName}" --wait --debug || \
 						/home/jenkins/.m2/helm/linux-amd64/helm upgrade redis-sentinel-exporter \
@@ -83,6 +85,7 @@ node("maven") {
 							--set loadbalancerIP0="${loadbalancerIP0}" \
 							--set loadbalancerIP1="${loadbalancerIP1}" \
 							--set loadbalancerIP2="${loadbalancerIP2}" \
+							--set storageClassName="${storageClassName}" \
 							./redis-sentinel-helm-exporter/redis-sentinel-cluster \
 							--kubeconfig="/home/jenkins/.m2/kubeconfig/${containerPlatform}/${envName}" -n "${appProjectName}" --wait --debug 
 							
@@ -94,6 +97,7 @@ node("maven") {
 							--set redisBaseImage="${redisBaseImage}" \
 							--set redisExporterImage="${redisExporterImage}" \
 							--set containerPlatform="${containerPlatform}" \
+							--set storageClassName="${storageClassName}" \
                             ./redis-sentinel-helm-exporter/redis-sentinel-cluster \
                             --kubeconfig="/home/jenkins/.m2/kubeconfig/${containerPlatform}/${envName}" -n "${appProjectName}" --wait --debug || \
 						/home/jenkins/.m2/helm/linux-amd64/helm upgrade redis-sentinel-exporter \
@@ -101,6 +105,7 @@ node("maven") {
                             --set redisBaseImage="${redisBaseImage}" \
                             --set redisExporterImage="${redisExporterImage}" \
                             --set containerPlatform="${containerPlatform}" \
+							--set storageClassName="${storageClassName}" \
                             ./redis-sentinel-helm-exporter/redis-sentinel-cluster \
                             --kubeconfig="/home/jenkins/.m2/kubeconfig/${containerPlatform}/${envName}" -n "${appProjectName}" --wait --debug 
 						"""		
